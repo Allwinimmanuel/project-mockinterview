@@ -5,7 +5,7 @@ import { Calendar, Users, CheckCircle, LayoutDashboard, Search, FileText, Downlo
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { useDrives } from '../contexts/DriveContext';
 import { validateDateTime } from '../utils/validation';
-import { generateQuestions, generateTechnicalMCQ } from '../data/questionBank';
+import { generateQuestions, generateTechnicalMCQ, generateQuestionsSeeded } from '../data/questionBank';
 import { fetchQuestionBank } from '../services/api';
 import { Sparkles, Lock, Video, RefreshCw } from 'lucide-react';
 import { CodeModal, VerdictBadge } from '../components/CodeModal';
@@ -1349,7 +1349,38 @@ const getAptitudeReport = (record, driveId, roundId, drives, roundSchedules) => 
   const restrictedKeyCount = warningLogs.filter(log => log.reason.toLowerCase().includes('key') || log.reason.toLowerCase().includes('shortcut') || log.reason.toLowerCase().includes('restricted')).length;
 
   let questions = schedule.questions || [];
-  if (questions.length === 0) {
+  const candidateId = record.candidateId || 'CAND-0000';
+  const isAptitude = String(roundId) === '1';
+  const isCoding = String(roundId) === '2';
+
+  if (schedule && (isCoding || isAptitude)) {
+    const count = isCoding
+      ? (Number(schedule.numQuestions) || 2)
+      : (Number(schedule.totalQuestions) || 15);
+    
+    let pool = [];
+    if (schedule.questionAssignmentMode === 'manual' && questions.length > 0) {
+      pool = questions;
+    } else {
+      pool = generateQuestionsSeeded(schedule.topics || {}, 9999, isCoding, candidateId);
+    }
+    
+    if (pool.length > 0) {
+      let h = 0;
+      const seedStr = String(candidateId);
+      for (let i = 0; i < seedStr.length; i++) {
+        h = Math.imul(31, h) + seedStr.charCodeAt(i) | 0;
+      }
+      const seededRandom = () => {
+        let t = h += 0x6D2B79F5;
+        t = Math.imul(t ^ (t >>> 15), t | 1);
+        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+      const shuffled = [...pool].sort(() => seededRandom() - 0.5);
+      questions = shuffled.slice(0, Math.min(count, shuffled.length));
+    }
+  } else if (questions.length === 0) {
     const mockTopics = { 'Quantitative Aptitude': true, 'Logical Reasoning': true, 'Verbal Ability': true };
     questions = generateQuestions(mockTopics, schedule.totalQuestions || 10, false);
   }
