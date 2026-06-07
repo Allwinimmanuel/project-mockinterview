@@ -2062,17 +2062,38 @@ const getTechnicalReport = (record, driveId, roundId, drives, roundSchedules) =>
 
   const seedVal = hashSeed(record.candidateId);
   const totalQuestions = questions.length;
-  let mcqAnswers = m.mcqAnswers;
-  if (!mcqAnswers && record.answers) {
-    try {
-      const parsed = typeof record.answers === 'string' ? JSON.parse(record.answers) : record.answers;
-      mcqAnswers = parsed.mcqAnswers || parsed;
-    } catch (e) {
-      console.error("Error parsing record.answers in getTechnicalReport", e);
+  if (!mcqAnswers || Object.keys(mcqAnswers).length === 0) {
+    const localMcq = localStorage.getItem(`${storageKey}_mcq`);
+    if (localMcq) {
+      mcqAnswers = JSON.parse(localMcq);
+    } else {
+      mcqAnswers = {};
+      const N = questions.length;
+      const scorePct = record.score || 0;
+      const C = Math.round((scorePct / 100) * N);
+      
+      const seedVal = hashSeed(record.candidateId);
+      const shuffledIndices = Array.from({ length: N }, (_, i) => i);
+      
+      for (let i = shuffledIndices.length - 1; i > 0; i--) {
+        const j = (seedVal + i) % (i + 1);
+        [shuffledIndices[i], shuffledIndices[j]] = [shuffledIndices[j], shuffledIndices[i]];
+      }
+
+      const correctIndices = new Set(shuffledIndices.slice(0, C));
+      const remainingIndices = shuffledIndices.slice(C);
+      const wrongIndices = new Set(remainingIndices);
+
+      questions.forEach((q, idx) => {
+        if (correctIndices.has(idx)) {
+          mcqAnswers[q.id] = q.answer || 0;
+        } else if (wrongIndices.has(idx)) {
+          mcqAnswers[q.id] = q.options ? (q.answer + 1) % q.options.length : 0;
+        } else {
+          mcqAnswers[q.id] = undefined;
+        }
+      });
     }
-  }
-  if (!mcqAnswers) {
-    mcqAnswers = {};
   }
   
   let answeredQuestions = 0;
