@@ -79,7 +79,7 @@ export default function Login() {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-5" autoComplete="off">
           {/* Email Field */}
           <div>
             <label className="block text-sm font-bold text-white mb-2">Email Address</label>
@@ -90,6 +90,7 @@ export default function Login() {
               className="w-full bg-[#334155] border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-[#3b82f6] transition-colors placeholder:text-slate-500"
               placeholder={role === 'candidate' ? 'allvinimmanuvel@nec.edu.in' : 'admin@mock.ai'}
               required
+              autoComplete="username"
             />
           </div>
           
@@ -105,6 +106,7 @@ export default function Login() {
               className="w-full bg-[#334155] border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-[#3b82f6] transition-colors [color-scheme:dark]"
               placeholder={role === 'interviewer' ? 'Password' : ''}
               required
+              autoComplete="current-password"
             />
           </div>
 
